@@ -25,5 +25,12 @@ After you've created your command file and placed it inside the *commands* folde
 npm run commands
 ```
 
+## Starting the bot
+To start the bot just type the following command
+
+```
+npm start
+```
+
 ## Found a bug?
 Open an issue on this repository, thanks.
