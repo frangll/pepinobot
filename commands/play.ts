@@ -78,7 +78,7 @@ module.exports = {
                 }
                 const nextSong = songList[0];
                 createPlayer(nextSong.url);
-                await interaction.followUp(`Now playing ${nextSong.title} in the voice channel.`);
+                await interaction.channel.send(`Now playing ${nextSong.title} in the voice channel.`);
             }
         });
 
