@@ -34,6 +34,10 @@ module.exports = {
             return await interaction.reply(`Provided track length is exceeding the maximum allowed. (Maximum allowed: ${secondsToFormat(max_video_duration_seconds)})`);
         }
 
+        if(duration < 1) {
+            return await interaction.reply(`Live streams are not allowed.`)
+        }
+
         // Add the song to the queue
         guildQueueHandler.addSongToQueue(guildId, {
             title: info.video_details.title,

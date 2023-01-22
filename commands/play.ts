@@ -43,6 +43,10 @@ module.exports = {
             return await interaction.reply(`Provided track length is exceeding the maximum allowed. (Maximum allowed: ${secondsToFormat(max_video_duration_seconds)})`);
         }
 
+        if(duration < 1) {
+            return await interaction.reply(`Live streams are not allowed.`)
+        }
+
         const songEmbed = createNowPlayingSongEmbed({
             description: songInfo.video_details.description,
             duration: songInfo.video_details.durationInSec,

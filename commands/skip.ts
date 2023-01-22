@@ -31,6 +31,9 @@ module.exports = {
             connection.state.subscription.player.play(audio);
             return await interaction.reply({ embeds: [nextSongEmbed] });
         }
+
+        // @ts-ignore
+        connection.state.subscription.player.stop();
         await interaction.reply("Queue is empty, nothing to skip to.");
     },
 };
