@@ -74,7 +74,7 @@ module.exports = {
                 if (songList.length < 1) {
                     //player.stop();
                     connection.destroy(); // Leave the voice channel
-                    return await interaction.followUp("Song queue is now empty, leaving voice channel.");
+                    return await interaction.channel.send("Song queue is now empty, leaving voice channel.");
                 }
                 const nextSong = songList[0];
                 createPlayer(nextSong.url);
