@@ -2,6 +2,10 @@ import { joinVoiceChannel, createAudioPlayer, NoSubscriberBehavior, createAudioR
 import { SlashCommandBuilder, CommandInteraction } from "discord.js";
 import { guildQueueHandler } from "../controller/queue";
 import play, { InfoData } from "play-dl";
+import { checkVideoDuration } from "../utils/videoDurationHandler";
+import { createNowPlayingSongEmbed } from "../utils/nowPlayingSongEmbed";
+import { secondsToFormat } from "../utils/secondsConverter";
+const { max_video_duration_seconds } = require("../config/main.json");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,26 +17,39 @@ module.exports = {
         const songUrl: any = url.value;
         const guildId = interaction.guildId;
         let songInfo: InfoData;
-        const voiceChannelId = interaction.guild?.members?.cache.get(interaction.member!.user.id)?.voice.channelId
+        const voiceChannelId = interaction.guild?.members?.cache.get(interaction.member!.user.id)?.voice.channelId;
 
         // Check if the user is in a voice channel
-        if(!voiceChannelId) {
-            return await interaction.reply("Please join a voice channel first.")
+        if (!voiceChannelId) {
+            return await interaction.reply("Please join a voice channel first.");
         }
 
         // Check if there is already a connection
         if (getVoiceConnection(guildId)) {
-            return await interaction.reply(
-                "There is already a song playing, please use the /skip command if you wish to play the next song, or if you are in a different channel /stop me first."
-            );
+            return await interaction.reply("There is already a song playing, please use the /skip command if you wish to play the next song, or if you are in a different channel /stop me first.");
         }
 
         // Check if the video url is valid
         try {
-            songInfo = await play.video_basic_info(songUrl);
+            songInfo = await play.video_info(songUrl);
         } catch (err) {
             return await interaction.reply("That was not a valid url, please try again.");
         }
+
+        // Check if the track duration provided is less or equal than max_video_duration_seconds
+        let duration = songInfo.video_details.durationInSec;
+
+        if (checkVideoDuration(duration)) {
+            return await interaction.reply(`Provided track length is exceeding the maximum allowed. (Maximum allowed: ${secondsToFormat(max_video_duration_seconds)})`);
+        }
+
+        const songEmbed = createNowPlayingSongEmbed({
+            description: songInfo.video_details.description,
+            duration: songInfo.video_details.durationInSec,
+            thumbnailUrl: songInfo.video_details.thumbnails[0].url,
+            title: songInfo.video_details.title,
+            guildId: interaction.guildId,
+        })
 
         // Channel connection information
         const connection = joinVoiceChannel({
@@ -65,6 +82,9 @@ module.exports = {
         guildQueueHandler.addSongToQueue(guildId, {
             title: songInfo.video_details.title,
             url: songInfo.video_details.url,
+            thumbnail: songInfo.video_details.thumbnails[0].url,
+            description: songInfo.video_details.description,
+            duration: songInfo.video_details.durationInSec,
         });
 
         player.on("stateChange", async (oldState, newState) => {
@@ -77,11 +97,23 @@ module.exports = {
                     return await interaction.channel.send("Song queue is now empty, leaving voice channel.");
                 }
                 const nextSong = songList[0];
+
+                // Generate the embed
+                const nextSongEmbed = createNowPlayingSongEmbed({
+                    description: nextSong.description,
+                    duration: nextSong.duration,
+                    thumbnailUrl: nextSong.thumbnail,
+                    title: nextSong.title,
+                    guildId: interaction.guildId,
+                    enableNextSongMessage: true
+                })
+
+                // Create the player
                 createPlayer(nextSong.url);
-                await interaction.channel.send(`Now playing ${nextSong.title} in the voice channel.`);
+                await interaction.channel.send({ embeds: [nextSongEmbed] });
             }
         });
 
-        await interaction.reply(`Now playing ${songInfo.video_details.title} in the voice channel.`);
+        await interaction.reply({ embeds: [songEmbed] });
     },
 };
