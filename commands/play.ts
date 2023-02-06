@@ -73,12 +73,13 @@ module.exports = {
                 const songList = guildQueueHandler.getSongsFromQueue(guildId);
                 if (songList.length < 1) {
                     //player.stop();
-                    connection.destroy(); // Leave the voice channel
-                    return await interaction.channel.send("Song queue is now empty, leaving voice channel.");
+                    //await interaction.channel.send("Song queue is now empty, leaving voice channel.");
+                    return connection.destroy(); // Leave the voice channel
+                } else {
+                    const nextSong = songList[0];
+                    createPlayer(nextSong.url);
+                    await interaction.channel.send(`Now playing ${nextSong.title} in the voice channel.`);
                 }
-                const nextSong = songList[0];
-                createPlayer(nextSong.url);
-                await interaction.channel.send(`Now playing ${nextSong.title} in the voice channel.`);
             }
         });
 
