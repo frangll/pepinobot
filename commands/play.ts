@@ -13,11 +13,11 @@ module.exports = {
         const songUrl: any = url.value;
         const guildId = interaction.guildId;
         let songInfo: InfoData;
-        const voiceChannelId = interaction.guild?.members?.cache.get(interaction.member!.user.id)?.voice.channelId
+        const voiceChannelId = interaction.guild?.members?.cache.get(interaction.member!.user.id)?.voice.channelId;
 
         // Check if the user is in a voice channel
-        if(!voiceChannelId) {
-            return await interaction.reply("Please join a voice channel first.")
+        if (!voiceChannelId) {
+            return await interaction.reply("Please join a voice channel first.");
         }
 
         // Check if there is already a connection
@@ -65,6 +65,20 @@ module.exports = {
         guildQueueHandler.addSongToQueue(guildId, {
             title: songInfo.video_details.title,
             url: songInfo.video_details.url,
+        });
+
+        // Workaround for https://github.com/discordjs/discord.js/issues/9185
+        const networkStateChangeHandler = (oldNetworkState: any, newNetworkState: any) => {
+            const newUdp = Reflect.get(newNetworkState, "udp");
+            clearInterval(newUdp?.keepAliveInterval);
+        };
+
+        getVoiceConnection(guildId).on("stateChange", (oldState, newState) => {
+            const oldNetworking = Reflect.get(oldState, "networking");
+            const newNetworking = Reflect.get(newState, "networking");
+
+            oldNetworking?.off("stateChange", networkStateChangeHandler);
+            newNetworking?.on("stateChange", networkStateChangeHandler);
         });
 
         player.on("stateChange", async (oldState, newState) => {
